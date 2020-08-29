@@ -122,7 +122,7 @@ class COCODataset(Dataset):
         if self.verbose:
             print('# images:', len(list(coco_img_dir.iterdir())))
 
-        data_info_path = Path(f'../x_lxmert/data/mscoco_data/{split}.json')
+        data_info_path = Path(f'../x-lxmert/data/mscoco_data/{split}.json')
         with open(data_info_path) as f:
             data_info_dicts = json.load(f)
         if self.verbose:

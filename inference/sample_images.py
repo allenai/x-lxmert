@@ -10,7 +10,7 @@ from torchvision.utils import save_image, make_grid
 from torchvision import transforms
 to_pil_image = transforms.ToPILImage()
 
-lxmert_dir = Path('../x_lxmert/').resolve()
+lxmert_dir = Path('../x-lxmert/').resolve()
 lxmert_src_dir = lxmert_dir.joinpath('src')
 
 sys.path.append(str(lxmert_dir))

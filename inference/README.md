@@ -24,5 +24,5 @@ python sample_images.py \
     --im_ratio "original" \
     --vis_mask_predict \
     --sample_steps 4 \
-    --load "../x_lxmert/snap/pretrained/x_lxmert/Epoch20" \
+    --load "../x-lxmert/snap/pretrained/x-lxmert/Epoch20" \
 ```
