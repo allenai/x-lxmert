@@ -27,3 +27,8 @@ wget -O x_lxmert/snap/pretrained/x_lxmert/Epoch20_LXRT.pth https://storage.googl
 ```
 wget -O image_generator/pretrained/G_60.pth https://storage.googleapis.com/x_lxmert/G_60.pth
 ```
+
+# Inference
+
+Check out [inference/README.md](inference/README.md)
+
