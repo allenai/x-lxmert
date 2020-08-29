@@ -3,7 +3,7 @@
 # Install
 
 ```
-pip -r requirments.txt
+pip -r requirements.txt
 
 or
 
