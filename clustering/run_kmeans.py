@@ -72,21 +72,21 @@ if __name__ == '__main__':
     # Keep original image sizes
     if imsize < 0:
         feat_path_dict = {
-            'mscoco_train': f'/home/jaeminc/workspace/datasets/COCO/features/{args.encoder}_train_grid{grid_size}.h5',
-            'mscoco_valid': f'/home/jaeminc/workspace/datasets/COCO/features/{args.encoder}_valid_grid{grid_size}.h5',
-            'nlvr_train': f'/home/jaeminc/workspace/datasets/nlvr2/features/{args.encoder}_train_grid{grid_size}.h5',
-            'nlvr_valid': f'/home/jaeminc/workspace/datasets/nlvr2/features/{args.encoder}_valid_grid{grid_size}.h5',
-            'vg': f'/home/jaeminc/workspace/datasets/VG/features/{args.encoder}_grid{grid_size}.h5',
+            'mscoco_train': f'../datasets/COCO/features/{args.encoder}_train_grid{grid_size}.h5',
+            'mscoco_valid': f'../datasets/COCO/features/{args.encoder}_valid_grid{grid_size}.h5',
+            'nlvr_train': f'../datasets/nlvr2/features/{args.encoder}_train_grid{grid_size}.h5',
+            'nlvr_valid': f'../datasets/nlvr2/features/{args.encoder}_valid_grid{grid_size}.h5',
+            'vg': f'../datasets/VG/features/{args.encoder}_grid{grid_size}.h5',
         }
 
     # Images resized to a fixed size
     else:
         feat_path_dict = {
-            'mscoco_train': f'/home/jaeminc/workspace/datasets/COCO/features/{args.encoder}_train_grid{grid_size}_imsize{imsize}.h5',
-            'mscoco_valid': f'/home/jaeminc/workspace/datasets/COCO/features/{args.encoder}_valid_grid{grid_size}_imsize{imsize}.h5',
-            'nlvr_train': f'/home/jaeminc/workspace/datasets/nlvr2/features/{args.encoder}_train_grid{grid_size}_imsize{imsize}.h5',
-            'nlvr_valid': f'/home/jaeminc/workspace/datasets/nlvr2/features/{args.encoder}_valid_grid{grid_size}_imsize{imsize}.h5',
-            'vg': f'/home/jaeminc/workspace/datasets/VG/features/{args.encoder}_grid{grid_size}_imsize{imsize}.h5',
+            'mscoco_train': f'../datasets/COCO/features/{args.encoder}_train_grid{grid_size}_imsize{imsize}.h5',
+            'mscoco_valid': f'../datasets/COCO/features/{args.encoder}_valid_grid{grid_size}_imsize{imsize}.h5',
+            'nlvr_train': f'../datasets/nlvr2/features/{args.encoder}_train_grid{grid_size}_imsize{imsize}.h5',
+            'nlvr_valid': f'../datasets/nlvr2/features/{args.encoder}_valid_grid{grid_size}_imsize{imsize}.h5',
+            'vg': f'../datasets/VG/features/{args.encoder}_grid{grid_size}_imsize{imsize}.h5',
         }
 
     save_dir = Path('__file__').resolve().parent.parent.joinpath('datasets/cluster_centroids')
