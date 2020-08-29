@@ -30,5 +30,4 @@ wget -O image_generator/pretrained/G_60.pth https://storage.googleapis.com/x_lxm
 
 # Inference
 
-Check out [inference/README.md](inference/README.md)
-
+Check out [./inference](inference/)
