@@ -1,0 +1,17 @@
+torch>=1.3.1
+torchvision
+pyyaml
+boto3
+h5py
+jsonlines
+requests
+boto3
+jupyterlab
+numpy
+pandas
+matplotlib
+tqdm
+tensorboard
+pillow
+pycocotools
+pytorch-pretrained-bert
