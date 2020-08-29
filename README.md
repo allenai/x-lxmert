@@ -3,6 +3,10 @@
 # Install
 
 ```
+pip -r requirments.txt
+
+or
+
 conda install pytorch torchvision -c pytorch
 conda install pyyaml boto3 h5py jsonlines requests boto3
 conda install jupyterlab nb_conda numpy pandas matplotlib
