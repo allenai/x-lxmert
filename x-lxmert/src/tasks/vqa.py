@@ -20,7 +20,8 @@ import logging
 import shutil
 from pprint import pprint
 
-from param import args
+# from param import args
+from param import parse_args
 
 from pretrain.qa_answer_table import load_lxmert_qa
 
@@ -496,7 +497,7 @@ def main_worker(gpu, args):
 if __name__ == "__main__":
 
     cudnn.benchmark = True
-    # args = parse_args()
+    args = parse_args()
     print(args)
     ngpus_per_node = torch.cuda.device_count()
     args.world_size = ngpus_per_node

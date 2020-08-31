@@ -26,12 +26,6 @@ tokenizer = BertTokenizer.from_pretrained(
     do_lower_case=True
 )
 
-args = parse_args()
-args.n_grids = args.grid_size**2
-
-args.gpu = torch.cuda.current_device()
-# print(args)
-
 def clean_text(sent):
     sent = sent.replace("\ufffd\ufffd", " ")
     sent = sent.replace("\n", ' ')
@@ -39,11 +33,13 @@ def clean_text(sent):
     sent = " ".join(sent.split())
     return sent
 
-def get_batch_entry(sentences, seq_length=20):
+def get_batch_entry(sentences, args):
     batch_entry = {}
 
     B = len(sentences)
     max_L = 0
+
+    seq_length = args.max_text_length
 
     input_ids = torch.zeros(B, seq_length).long()
 
@@ -73,6 +69,13 @@ def get_batch_entry(sentences, seq_length=20):
     return batch_entry
 
 if __name__ == '__main__':
+
+    args = parse_args()
+    args.n_grids = args.grid_size**2
+
+    args.gpu = torch.cuda.current_device()
+    # print(args)
+
     train_loader = []
     val_loader = []
 
@@ -97,7 +100,7 @@ if __name__ == '__main__':
     print('Loaded captions')
     print(captions)
 
-    entry = get_batch_entry(captions)
+    entry = get_batch_entry(captions, args)
 
     print(f'prepared batch entry | {time() - start:.2f}s')
 

@@ -18,8 +18,8 @@ import logging
 import shutil
 from pprint import pprint
 
-from param import args
-# from param import parse_args
+# from param import args
+from param import parse_args
 from tasks.nlvr2_model import NLVR2Model
 # from tasks.nlvr2_data import NLVR2Dataset, NLVR2TorchDataset, NLVR2Evaluator
 from tasks.nlvr2_data import get_loader
@@ -535,7 +535,7 @@ def main_worker(gpu, args):
 
 if __name__ == "__main__":
     cudnn.benchmark = True
-    # args = parse_args()
+    args = parse_args()
     print(args)
     ngpus_per_node = torch.cuda.device_count()
     args.world_size = ngpus_per_node

@@ -253,7 +253,8 @@ def parse_args(parse=True, **optional_kwargs):
 
     parser.add_argument('--comment', type=str, default='')
 
-    if parse and not is_interactive():
+    # if parse and not is_interactive():
+    if parse:
         # Parse the arguments.
         args = parser.parse_args()
     else:
@@ -304,11 +305,11 @@ class Config(object):
 
         return Config(**kwargs)
 
-if is_interactive():
-    args = None
-else:
-    args = parse_args()
+# if is_interactive():
+#     args = None
+# else:
+#     args = parse_args()
 
 
 if __name__ == '__main__':
-    args = parse_args()
+    args = parse_args(True)

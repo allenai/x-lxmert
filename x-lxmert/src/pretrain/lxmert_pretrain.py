@@ -13,8 +13,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from param import args
-# from param import parse_args
+# from param import args
+from param import parse_args
 
 from lxrt.entry import set_visual_config
 from lxrt.modeling import LXRTPretraining
@@ -586,7 +586,7 @@ class LXMERT:
             results = reduce_dict(epoch_results, self.args.gpu)
             if self.args.gpu == 0:
                 total_loss = results['lm_loss'] + results['vis_loss'] + results['matched_loss'] + results['qa_loss']
-                total_count = results['lm_loss_count'] + results['vis_loss_count'] + results['matched_loss_count'] 
+                total_count = results['lm_loss_count'] + results['vis_loss_count'] + results['matched_loss_count']
                 # + results['qa_loss_count']
 
                 avg_train_loss = total_loss / total_count
@@ -993,7 +993,7 @@ def main_worker(gpu, args):
 
 if __name__ == "__main__":
     cudnn.benchmark = True
-    # args = parse_args()
+    args = parse_args()
 
     if args.vis_mask_predict:
         args.obj_mask_rate = 'uniform'

@@ -28,8 +28,8 @@ from copy import deepcopy
 
 # from apex import amp
 
-from param import args
-# from param import parse_args
+# from param import args
+from param import parse_args
 from tasks.imggen_model import ImggenModel
 # from tasks.imggen_layers import Generator, Discriminator, ResNetEncoder
 
@@ -1617,7 +1617,7 @@ def main_worker(gpu, args):
 
 if __name__ == "__main__":
     # cudnn.benchmark = True
-    # args = parse_args()
+    args = parse_args()
     print(args)
     ngpus_per_node = torch.cuda.device_count()
     args.world_size = ngpus_per_node
