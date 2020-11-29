@@ -1,0 +1,11 @@
+torch
+torchvision
+pyyaml
+h5py
+numpy
+pandas
+matplotlib
+tqdm
+tensorboard
+pillow
+transformers
