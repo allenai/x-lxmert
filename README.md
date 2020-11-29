@@ -13,13 +13,18 @@ Recent multi-modal transformers have achieved tate of the art performance on a v
 
 # Install
 
-```
+* Python packages
+
+```bash
 pip install -r ./requirements.txt
 ```
+* [Mask-RCNN-benchmark](https://gitlab.com/vedanuj/vqa-maskrcnn-benchmark) (for feature extraction)
+  - Please follow [the original installation guide](https://gitlab.com/vedanuj/vqa-maskrcnn-benchmark/-/blob/master/INSTALL.md).
+
+* [Faiss](https://github.com/facebookresearch/faiss) (for K-means clustering)
+  - Please follow [the original installation guide](https://github.com/facebookresearch/faiss/blob/master/INSTALL.md).
 
 # Feature extraction
-
-Please check [./feature_extraction/README.md](./feature_extraction/README.md) for more details.
 
 ```bash
 cd ./feature_extraction
@@ -41,7 +46,7 @@ bash scripts/pretrain.bash
 ```
 
 ## or download pretrained checkpoint
-```
+```bash
 wget -O x-lxmert/snap/pretrained/x_lxmert/Epoch20_LXRT.pth https://storage.googleapis.com/x_lxmert/Epoch20_LXRT.pth
 ```
 
@@ -74,7 +79,7 @@ bash scripts/generate_image.bash
 ```
 
 ## or download pretrained checkpoints
-```
+```bash
 wget -O x-lxmert/snap/pretrained/x_lxmert/Epoch20_LXRT.pth https://storage.googleapis.com/x_lxmert/Epoch20_LXRT.pth
 ```
 
