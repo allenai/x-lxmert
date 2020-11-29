@@ -74,13 +74,19 @@ bash scripts/finetune_nlvr2.bash
 
 ## Train image generator on MS COCO
 ```bash
-cd ./x-lxmert/
-bash scripts/generate_image.bash
+cd ./image_generator/
+bash scripts/train_generator.bash
 ```
 
 ## or download pretrained checkpoints
 ```bash
 wget -O x-lxmert/snap/pretrained/x_lxmert/Epoch20_LXRT.pth https://storage.googleapis.com/x_lxmert/Epoch20_LXRT.pth
+```
+
+## Sample images
+```bash
+cd ./x-lxmert/
+bash scripts/generate_image.bash
 ```
 
 
