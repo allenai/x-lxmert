@@ -80,7 +80,7 @@ bash scripts/train_generator.bash
 
 ## or download pretrained checkpoints
 ```bash
-wget -O x-lxmert/snap/pretrained/x_lxmert/Epoch20_LXRT.pth https://storage.googleapis.com/x_lxmert/Epoch20_LXRT.pth
+wget -O image_generator/pretrained/G_60.pth https://storage.googleapis.com/x_lxmert/G_60.pth
 ```
 
 ## Sample images
