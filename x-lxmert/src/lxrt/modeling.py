@@ -1,5 +1,3 @@
-
-
 import torch
 import torch.nn as nn
 from torch.nn import CrossEntropyLoss, SmoothL1Loss
@@ -309,18 +307,9 @@ if __name__ == '__main__':
     model = XLxmertForPretraining.from_pretrained("bert-base-uncased")
 
     from pathlib import Path
+    from utils import box_position, load_state_dict
 
-    ckpt_path = Path('__file__').resolve().parent.parent.parent.joinpath('snap/pretrained/x_lxmert/Epoch20_LXRT.pth')
-
-    def load_state_dict(state_dict_path, loc='cpu'):
-        state_dict = torch.load(state_dict_path, map_location=loc)
-        # Change Multi GPU to single GPU
-        new_state_dict = {}
-        for key, value in state_dict.items():
-            if key.startswith("module."):
-                new_state_dict[key[len("module."):]] = value
-        return new_state_dict
-
+    ckpt_path = Path(__file__).resolve().parent.parent.parent.joinpath('snap/pretrained/x_lxmert/Epoch20_LXRT.pth')
     state_dict = load_state_dict(ckpt_path, 'cpu')
 
     results = model.load_state_dict(state_dict, strict=False)
