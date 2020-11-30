@@ -20,16 +20,28 @@ wget -O e2e_faster_rcnn_X-152-32x8d-FPN_1x_MLP_2048_FPN_512_train.yaml https://d
 
 ```bash
 # Grid features
-python coco_extract_grid_feature.py
+python coco_extract_grid_feature.py --split train
+python coco_extract_grid_feature.py --split valid
+python coco_extract_grid_feature.py --split test
+
 python VG_extract_grid_feature.py
 python GQA_extract_grid_feature.py
-python nlvr2_extract_grid_feature.py
+
+python nlvr2_extract_grid_feature.py --split train
+python nlvr2_extract_grid_feature.py --split valid
+python nlvr2_extract_grid_feature.py --split test
 
 # bounding box features (optional)
-python coco_extract_bbox_feature.py
+python coco_extract_bbox_feature.py --split train
+python coco_extract_bbox_feature.py --split valid
+python coco_extract_bbox_feature.py --split test
+
 python VG_extract_bbox_feature.py
 python GQA_extract_bbox_feature.py
-python nlvr2_extract_bbox_feature.py
+
+python nlvr2_extract_bbox_feature.py --split train
+python nlvr2_extract_bbox_feature.py --split valid
+python nlvr2_extract_bbox_feature.py --split test
 ```
 
 # K-means clustering

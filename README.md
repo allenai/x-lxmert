@@ -33,10 +33,16 @@ pip install -r ./requirements.txt
 ```bash
 cd ./feature_extraction
 
-python coco_extract_grid_feature.py
+python coco_extract_grid_feature.py --split train
+python coco_extract_grid_feature.py --split valid
+python coco_extract_grid_feature.py --split test
+
 python VG_extract_grid_feature.py
 python GQA_extract_grid_feature.py
-python nlvr2_extract_grid_feature.py
+
+python nlvr2_extract_grid_feature.py --split train
+python nlvr2_extract_grid_feature.py --split valid
+python nlvr2_extract_grid_feature.py --split test
 
 python run_kmeans.py
 ```
