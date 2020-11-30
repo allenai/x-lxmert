@@ -30,8 +30,25 @@ pip install -r ./requirements.txt
 
 # Code structure
 ```
-# Store dataset and features
+# Store images, features, and annotations
 ./datasets
+    COCO/
+        images/
+        featuers/
+    VG/
+        images/
+        features/
+    GQA/
+        images/
+        features/
+    nlvr2/
+        images/
+        features/
+    data/               <= Store text annotations (*.json) for each split
+        lxmert/
+        vqa/
+        gqa/
+        nlvr2
 
 # Run feature extraction and k-means clustering
 ./feature_extraction
@@ -44,7 +61,7 @@ pip install -r ./requirements.txt
 # Train X-LXMERT
 ./x-lxmert
     src/
-        lxrt/           <= X-LXMERT model class implementation (inherits huggingface's LXMERT class)
+        lxrt/           <= X-LXMERT model class implementation (inherits huggingface transformer's LXMERT class)
         pretrain/       <= X-LXMERT Pretraining
         tasks/          <= Fine-tuning on downstream tasks (VQA, GQA, NLVR2, Image generation)
     snap/       <= Store X-LXMERT checkpoints
@@ -96,18 +113,21 @@ wget -O x-lxmert/snap/pretrained/x_lxmert/Epoch20_LXRT.pth https://ai2-vision-x-
 ```bash
 cd ./x-lxmert/
 bash scripts/finetune_vqa.bash
+bash scripts/test_vqa.bash
 ```
 
 ## GQA
 ```bash
 cd ./x-lxmert/
 bash scripts/finetune_gqa.bash
+bash scripts/test_gqa.bash
 ```
 
 ## NLVR2
 ```bash
 cd ./x-lxmert/
 bash scripts/finetune_nlvr2.bash
+bash scripts/test_nlvr2.bash
 ```
 
 # Image generation
@@ -120,13 +140,13 @@ bash scripts/train_generator.bash
 
 ## or download pretrained checkpoints
 ```bash
-wget -O image_generator/pretrained/G_60.pth https://ai2-vision-x-lxmert.s3-us-west-2.amazonaws.com/image_generator/G_60.pth
+wget -O image_generator/snap/pretrained/G_60.pth https://ai2-vision-x-lxmert.s3-us-west-2.amazonaws.com/image_generator/G_60.pth
 ```
 
 ## Sample images
 ```bash
 cd ./x-lxmert/
-bash scripts/generate_image.bash
+bash scripts/sample_image.bash
 ```
 
 
