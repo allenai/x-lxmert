@@ -56,5 +56,5 @@ Please follow [the original installation guide](https://github.com/facebookresea
 
 ```bash
 
-python run_kmeans.py --src=mscoco_train --tgt mscoco_train mscoco valid nlvr_train nlvr_valid vg
+python run_kmeans.py --src=mscoco_train --tgt mscoco_train mscoco valid vg
 ```

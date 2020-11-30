@@ -33,18 +33,24 @@ pip install -r ./requirements.txt
 ```bash
 cd ./feature_extraction
 
+# For Pretraining / VQA
 python coco_extract_grid_feature.py --split train
 python coco_extract_grid_feature.py --split valid
 python coco_extract_grid_feature.py --split test
 
+# For Pretraining
 python VG_extract_grid_feature.py
+
+# For GQA
 python GQA_extract_grid_feature.py
 
+# For NLVR2
 python nlvr2_extract_grid_feature.py --split train
 python nlvr2_extract_grid_feature.py --split valid
 python nlvr2_extract_grid_feature.py --split test
 
-python run_kmeans.py --src mscoco_train --tgt mscoco_train mscoco valid nlvr_train nlvr_valid vg
+# K-Means clustering
+python run_kmeans.py --src mscoco_train --tgt mscoco_train mscoco valid vg
 ```
 
 # Pretraining
