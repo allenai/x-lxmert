@@ -1,7 +1,7 @@
 
 # Feature extraction
 
-We use the same version of Mask R-CNN used in [vilbert multi-task](https://github.com/facebookresearch/vilbert-multi-task/tree/master/data).
+We use the same version of 'Bottom-up and Top-down feature extractor' used in [vilbert multi-task](https://github.com/facebookresearch/vilbert-multi-task/tree/master/data).
 This is based on [Vedanuj Goswami's mask-rcnn-benchmark fork](https://gitlab.com/vedanuj/vqa-maskrcnn-benchmark).
 
 
