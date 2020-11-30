@@ -28,6 +28,30 @@ pip install -r ./requirements.txt
 * [Faiss](https://github.com/facebookresearch/faiss) (for K-means clustering)
   - Please follow [the original installation guide](https://github.com/facebookresearch/faiss/blob/master/INSTALL.md).
 
+# Code structure
+```
+# Store dataset and features
+./datasets
+
+# Run feature extraction and k-means clustering
+./feature_extraction
+
+# Train image generator
+./image_generator
+    snap/       <= Store image generator checkpoints
+    scripts/    <= Bash scripts for training image generator
+
+# Train X-LXMERT
+./x-lxmert
+    src/
+        lxrt/           <= X-LXMERT model class implementation (inherits huggingface's LXMERT class)
+        pretrain/       <= X-LXMERT Pretraining
+        tasks/          <= Fine-tuning on downstream tasks (VQA, GQA, NLVR2, Image generation)
+    snap/       <= Store X-LXMERT checkpoints
+    scripts/    <= Bash scripts for pretraining, fine-tuning, and image generation
+```
+
+
 # Feature extraction
 
 ```bash
