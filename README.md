@@ -47,7 +47,7 @@ bash scripts/pretrain.bash
 
 ## or download pretrained checkpoint
 ```bash
-wget -O x-lxmert/snap/pretrained/x_lxmert/Epoch20_LXRT.pth https://storage.googleapis.com/x_lxmert/Epoch20_LXRT.pth
+wget -O x-lxmert/snap/pretrained/x_lxmert/Epoch20_LXRT.pth https://ai2-vision-x-lxmert.s3-us-west-2.amazonaws.com/x-lxmert/Epoch20_LXRT.pth
 ```
 
 # Finetuning
@@ -80,7 +80,7 @@ bash scripts/train_generator.bash
 
 ## or download pretrained checkpoints
 ```bash
-wget -O image_generator/pretrained/G_60.pth https://storage.googleapis.com/x_lxmert/G_60.pth
+wget -O image_generator/pretrained/G_60.pth https://ai2-vision-x-lxmert.s3-us-west-2.amazonaws.com/image_generator/G_60.pth
 ```
 
 ## Sample images
