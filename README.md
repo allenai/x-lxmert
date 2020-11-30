@@ -44,7 +44,7 @@ python nlvr2_extract_grid_feature.py --split train
 python nlvr2_extract_grid_feature.py --split valid
 python nlvr2_extract_grid_feature.py --split test
 
-python run_kmeans.py
+python run_kmeans.py --src mscoco_train --tgt mscoco_train mscoco valid nlvr_train nlvr_valid vg
 ```
 
 # Pretraining

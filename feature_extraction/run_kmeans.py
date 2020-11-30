@@ -45,7 +45,7 @@ if __name__ == '__main__':
     parser.add_argument('--n_centroids', type=int, default=10000)
     parser.add_argument('--n_iter', type=int, default=20)
     parser.add_argument('--feat_dim', type=int, default=2048)
-    parser.add_argument('--grid_size', type=int, default=5)
+    parser.add_argument('--grid_size', type=int, default=8)
     parser.add_argument('--imsize', type=int, default=-1)
     parser.add_argument('--verbose', type=str2bool, default=True)
     parser.add_argument('--encoder', type=str, default='maskrcnn')
@@ -68,8 +68,6 @@ if __name__ == '__main__':
     imsize = args.imsize
 
     ######## Load Data ########
-
-
     feat_path_dict = {
         'mscoco_train': datasets_dir.joinpath(f'COCO/features/{args.encoder}_train_grid{grid_size}.h5'),
         'mscoco_valid': datasets_dir.joinpath(f'COCO/features/{args.encoder}_valid_grid{grid_size}.h5'),
@@ -109,8 +107,7 @@ if __name__ == '__main__':
             centroid_path = f'{args.encoder}_{src}_centroids{n_centroids}_iter{n_iter}_d{d}_grid{grid_size}.npy'
         else:
             centroid_path = f'{args.encoder}_{src}_centroids{n_centroids}_iter{n_iter}_d{d}_grid{grid_size}_imsize{imsize}.npy'
-        if args.v4:
-            centroid_path = save_dir.joinpath(centroid_path)
+        centroid_path = save_dir.joinpath(centroid_path)
         centroids = kmeans.centroids
         np.save(centroid_path, centroids)
         print('Centroids saved at', centroid_path)
@@ -119,8 +116,7 @@ if __name__ == '__main__':
             centroid_path = f'{args.encoder}_{src}_centroids{n_centroids}_iter{n_iter}_d{d}_grid{grid_size}.npy'
         else:
             centroid_path = f'{args.encoder}_{src}_centroids{n_centroids}_iter{n_iter}_d{d}_grid{grid_size}_imsize{imsize}.npy'
-        if args.v4:
-            centroid_path = save_dir.joinpath(centroid_path)
+        centroid_path = save_dir.joinpath(centroid_path)
         centroids = np.load(centroid_path)
         print('Centroids loaded from', centroid_path)
 
