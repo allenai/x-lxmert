@@ -12,7 +12,7 @@ Recent multi-modal transformers have achieved tate of the art performance on a v
 # Demo
 Try out [AI2 Computer Vision Explorer Demo](https://vision-explorer.allenai.org/text_to_image_generation)!
 
-<img src="./assets/x-lxmert-demo.gif" height="500">
+<img src="./assets/x-lxmert-demo.gif">
 
 
 # Install
