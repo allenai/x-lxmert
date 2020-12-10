@@ -20,9 +20,9 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
-def is_interactive():
-    import __main__ as main
-    return not hasattr(main, '__file__')
+# def is_interactive():
+#     import __main__ as main
+#     return not hasattr(main, '__file__')
 
 
 def get_optimizer(optim, verbose=False):
@@ -306,10 +306,10 @@ class Config(object):
 
         return Config(**kwargs)
 
-if is_interactive():
-    args = None
-else:
-    args = parse_args()
+# if is_interactive():
+#     args = None
+# else:
+#     args = parse_args()
 
 
 if __name__ == '__main__':
