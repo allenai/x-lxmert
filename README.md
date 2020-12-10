@@ -48,7 +48,7 @@ pip install -r ./requirements.txt
         lxmert/
         vqa/
         gqa/
-        nlvr2
+        nlvr2/
 
 # Run feature extraction and k-means clustering
 ./feature_extraction

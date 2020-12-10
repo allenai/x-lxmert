@@ -5,7 +5,7 @@ import torch.nn as nn
 
 
 class GQAModel(LxmertPreTrainedModel):
-    def __init__(self, config, num_answers, num_clusters=10000):
+    def __init__(self, config, num_answers, num_clusters=-1):
         super().__init__(config)
 
         self.config = config
@@ -16,14 +16,8 @@ class GQAModel(LxmertPreTrainedModel):
         self.bert = LxmertModel(config)
 
         # GQA Answer head
-        self.answer_head = LxmertVisualAnswerHead(
-            config, self.config.num_answers)
-
-    def set_visual_embedding(self, centroids):
-        self.vis_emb = nn.Embedding.from_pretrained(
-            torch.from_numpy(centroids),
-            freeze=True
-        )
+        self.answer_head = LxmertVisualAnswerHead(config, self.config.num_answers)
+        self._init_weights(self.logit_fc)
 
     def forward(self,
                 input_ids=None,
@@ -32,7 +26,7 @@ class GQAModel(LxmertPreTrainedModel):
                 attention_mask=None,
                 visual_attention_mask=None,
 
-                cluster_ids=None,
+                # cluster_ids=None,
                 # vis_mask=None,
 
                 token_type_ids=None,
@@ -47,8 +41,8 @@ class GQAModel(LxmertPreTrainedModel):
 
         out_dict = {}
 
-        if self.config.clustering:
-            visual_feats = self.vis_emb(cluster_ids)
+        # if self.config.clustering:
+        #     visual_feats = self.vis_emb(cluster_ids)
 
         B, V_L, _ = visual_feats.size()
 
@@ -70,9 +64,9 @@ class GQAModel(LxmertPreTrainedModel):
 
         logit = self.answer_head(pooled_output)
 
-        return logit
+        # return logit
 
-        # out_dict['logit'] = logit
+        out_dict['logit'] = logit
         # out_dict['pred'] = logit.argmax(dim=-1).detach().flatten().cpu().numpy()
 
-        # return out_dict
+        return out_dict

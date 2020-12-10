@@ -1,3 +1,4 @@
+PYTHONPATH=$PYTHONPATH:./src \
 python src/main.py \
     --clustering \
     --im_ratio='original' --v4 \

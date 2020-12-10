@@ -2,12 +2,11 @@
 # Copyleft 2019 project LXRT.
 
 import json
-import torch
 import copy
-
 from pathlib import Path
-project_dir = Path(__file__).resolve().parent.parent.parent
+import torch
 
+from utils import load_state_dict
 
 class AnswerTable:
     ANS_CONVERT = {
@@ -28,9 +27,11 @@ class AnswerTable:
         'grey': 'gray',
     }
 
-    def __init__(self, dsets=None):
+    def __init__(self, args, dsets=None):
+        self.args = args
+        self.datasets_dir = Path(self.args.datasets_dir)
         # self.all_ans = json.load(open("data/lxmert/all_ans.json"))
-        all_ans_path = project_dir.joinpath(
+        all_ans_path = self.datasets_dir.joinpath(
             'data/lxmert/all_ans.json')
         self.all_ans = json.load(open(all_ans_path))
         if dsets is not None:
@@ -89,7 +90,7 @@ class AnswerTable:
         return len(self.anss)
 
 
-def load_lxmert_qa(path, model, label2ans, verbose=False, loc='cpu'):
+def load_lxmert_qa(args, path, model, label2ans, verbose=False, loc='cpu'):
     """
     Load model weights from LXMERT pre-training.
     The answers in the fine-tuned QA task (indicated by label2ans)
@@ -104,25 +105,9 @@ def load_lxmert_qa(path, model, label2ans, verbose=False, loc='cpu'):
     """
     if verbose:
         print("Load QA pre-trained LXMERT from %s " % path)
-    loaded_state_dict = torch.load("%s_LXRT.pth" % path, map_location=loc)
+
+    loaded_state_dict = load_state_dict(path, loc)
     model_state_dict = model.state_dict()
-
-    # Handle Multi-GPU pre-training --> Single GPU fine-tuning
-    for key in list(loaded_state_dict.keys()):
-        loaded_state_dict[key.replace(
-            "module.", '')] = loaded_state_dict.pop(key)
-
-    # Isolate bert model
-    # bert_state_dict = {}
-    # for key, value in loaded_state_dict.items():
-    #     if key.startswith('bert.'):
-    #         bert_state_dict[key] = value
-
-    # Isolate answer head
-    # answer_state_dict = {}
-    # for key, value in loaded_state_dict.items():
-    #     if key.startswith("answer_head."):
-    #         answer_state_dict[key.replace('answer_head.', '')] = value
 
     # Do surgery on answer state dict
     ans_weight = loaded_state_dict['answer_head.logit_fc.3.weight']
@@ -130,7 +115,7 @@ def load_lxmert_qa(path, model, label2ans, verbose=False, loc='cpu'):
 
     new_answer_weight = copy.deepcopy(model_state_dict['answer_head.logit_fc.3.weight'])
     new_answer_bias = copy.deepcopy(model_state_dict['answer_head.logit_fc.3.bias'])
-    answer_table = AnswerTable()
+    answer_table = AnswerTable(args)
     loaded = 0
     unload = 0
     if type(label2ans) is list:
@@ -155,22 +140,3 @@ def load_lxmert_qa(path, model, label2ans, verbose=False, loc='cpu'):
     result = model.load_state_dict(loaded_state_dict, strict=False)
     if verbose:
         print(result)
-
-
-    # # Load Bert Weights
-    # # bert_model_keys = set(model.lxrt_encoder.model.state_dict().keys())
-    # bert_model_keys = set(model.state_dict().keys())
-    # bert_loaded_keys = set(bert_state_dict.keys())
-    # # assert len(bert_model_keys - bert_loaded_keys) == 0, (bert_model_keys - bert_loaded_keys)
-    # result = model.load_state_dict(bert_state_dict, strict=False)
-    # if verbose:
-    #     print(result)
-
-    # # Load Answer Logic FC Weights
-    # model_keys = set(model.state_dict().keys())
-    # ans_loaded_keys = set(answer_state_dict.keys())
-    # assert len(ans_loaded_keys - model_keys) == 0, (ans_loaded_keys - model_keys)
-
-    # result = model.load_state_dict(answer_state_dict, strict=False)
-    # if verbose:
-    #     print(result)

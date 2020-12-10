@@ -16,9 +16,6 @@ import numpy as np
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
-from torchvision import transforms
-from torchvision.datasets.folder import default_loader
-
 from transformers import LxmertTokenizer
 from pretrain.qa_answer_table import AnswerTable
 
@@ -125,7 +122,7 @@ class PretrainingDataset(Dataset):
 
         data = []
         for img_source in self.sources:
-            with open(self.datasets_dir.joinpath(f'lxmert/{img_source}.json')) as f:
+            with open(self.datasets_dir.joinpath(f'data/lxmert/{img_source}.json')) as f:
                 _data = json.load(f)
                 if self.verbose:
                     print(f"Loaded {len(_data)} data from", img_source)
@@ -164,12 +161,12 @@ class PretrainingDataset(Dataset):
 
 
         if args.clustering:
-            centroids_dir = self.datasets_dir.joinpath('cluster_centroids').resolve()
-            with open(centroids_dir.joinpath(f'{args.encoder}_{args.cluster_src}_mscoco_train_img_id_to_cluster_id_{args.n_centroids}_iter{args.n_iter}_d{args.feat_dim}_grid{args.grid_size}.pkl'), 'rb') as f:
+            clustering_dir = self.datasets_dir.joinpath('clustering')
+            with open(clustering_dir.joinpath(f'{args.encoder}_{args.cluster_src}_mscoco_train_img_id_to_cluster_id_{args.n_centroids}_iter{args.n_iter}_d{args.feat_dim}_grid{args.grid_size}.pkl'), 'rb') as f:
                 mscoco_train_img_id_to_cluster_id = pickle.load(f)
-            with open(centroids_dir.joinpath(f'{args.encoder}_{args.cluster_src}_mscoco_valid_img_id_to_cluster_id_{args.n_centroids}_iter{args.n_iter}_d{args.feat_dim}_grid{args.grid_size}.pkl'), 'rb') as f:
+            with open(clustering_dir.joinpath(f'{args.encoder}_{args.cluster_src}_mscoco_valid_img_id_to_cluster_id_{args.n_centroids}_iter{args.n_iter}_d{args.feat_dim}_grid{args.grid_size}.pkl'), 'rb') as f:
                 mscoco_valid_img_id_to_cluster_id = pickle.load(f)
-            with open(centroids_dir.joinpath(f'{args.encoder}_{args.cluster_src}_vg_img_id_to_cluster_id_{args.n_centroids}_iter{args.n_iter}_d{args.feat_dim}_grid{args.grid_size}.pkl'), 'rb') as f:
+            with open(clustering_dir.joinpath(f'{args.encoder}_{args.cluster_src}_vg_img_id_to_cluster_id_{args.n_centroids}_iter{args.n_iter}_d{args.feat_dim}_grid{args.grid_size}.pkl'), 'rb') as f:
                 vg_img_id_to_cluster_id = pickle.load(f)
 
             self.data_source_to_cluster_data = {
@@ -181,17 +178,11 @@ class PretrainingDataset(Dataset):
 
         with Pool(8) as pool:
             if self.verbose:
-                # for _data in tqdm(pool.imap(get_datum, data),
-                #                   total=len(data), ncols=100):
-                #     new_data.extend(_data)
                 data = [datum for _data in tqdm(pool.imap(get_datum, data), total=len(data), ncols=100) for datum in _data]
             else:
-                # for _data in pool.imap(get_datum, data):
-                #     new_data.extend(_data)
                 data = [datum for _data in pool.imap(get_datum, data) for datum in _data]
 
-        if self.args.target_exact_feat or self.args.target_prob or self.args.feed_exact_feat or self.args.target_obj_id:
-            centroids_dir = Path('../../../datasets/').resolve()
+        if self.args.target_exact_feat or self.args.feed_exact_feat or self.args.target_obj_id:
             if args.grid_model:
                 self.data_source_to_h5_path = {
                     'mscoco_train': self.datasets_dir.joinpath(f'COCO/features/{args.encoder}_train_grid{args.grid_size}.h5'),
@@ -663,7 +654,7 @@ def collate_fn(batch):
 
 def get_loader(args, split='mscoco_train', mode='train',
                batch_size=32, workers=4, distributed=False, gpu=0,
-               collate_fn=collate_fn, transform=None, topk=None, data_out=['img']):
+               topk=None, data_out=['img']):
 
     assert 'mscoco' in split
     verbose = gpu == 0

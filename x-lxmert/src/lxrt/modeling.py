@@ -35,19 +35,19 @@ class LxmertVisualObjHead(nn.Module):
             if 'attr' in self.visual_losses:
                 self.out_attr = nn.Linear(config.visual_feat_dim, config.num_attr_labels)
 
-    def forward(self, hidden_states):
+    def forward(self, hidden_states, out_keys=[]):
         hidden_states = self.transform(hidden_states)
 
         output = {}
         feat = self.linear_feat(hidden_states)
-        if 'feat' in self.visual_losses:
+        if 'feat' in self.visual_losses or 'feat' in out_keys:
             output['feat'] = feat
-        if 'obj' in self.visual_losses:
+        if 'obj' in self.visual_losses or 'obj' in out_keys:
             if self.cluster_out:
                 output['obj'] = self.out_cluster(feat)
             else:
                 output['obj'] = self.out_obj(feat)
-        if 'attr' in self.visual_losses:
+        if 'attr' in self.visual_losses or 'attr' in out_keys:
             output['attr'] = self.out_attr(feat)
 
         return output
@@ -138,8 +138,13 @@ class XLxmertForPretraining(LxmertPreTrainedModel):
 
 
     def set_visual_embedding(self, centroids):
+        import numpy as np
+        if isinstance(centroids, np.ndarray):
+            centroids = torch.from_numpy(centroids)
+        elif isinstance(centroids, torch.Tensor):
+            pass
         self.vis_emb = nn.Embedding.from_pretrained(
-            torch.from_numpy(centroids),
+            centroids,
             freeze=True
         )
         if self.task_obj_predict:

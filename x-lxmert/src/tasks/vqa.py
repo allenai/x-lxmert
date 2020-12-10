@@ -1,36 +1,31 @@
 # coding=utf-8
-# Copyleft 2019 project LXRT.
 
+import os
+import collections
+from pathlib import Path
+import logging
+import shutil
+
+from tqdm import tqdm
+import numpy as np
+import torch
+import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import torch.multiprocessing as mp
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
-import os
-import collections
-from pathlib import Path
 
-from apex import amp
-
-import numpy as np
-from tqdm import tqdm
-import torch
-import torch.nn as nn
-# from torch.utils.data.dataloader import DataLoader
-import logging
-import shutil
-from pprint import pprint
-
-from param import args
-
+from param import parse_args
 from pretrain.qa_answer_table import load_lxmert_qa
-
 from tasks.vqa_model import VQAModel
 from tasks.vqa_data import get_loader
+from utils import load_state_dict, LossMeter, count_parameters, reduce_dict, set_global_logging_level
 
-from utils import load_state_dict, LossMeter
+set_global_logging_level(logging.ERROR, ["transformers"])
+cudnn.benchmark = True
 
 
-class VQA:
+class Trainer:
     def __init__(self, args, train_loader=None, val_loader=None, logger=None, num_answers=0, train=True):
         self.args = args
 
@@ -57,36 +52,14 @@ class VQA:
         # Load Checkpoint
         self.start_epoch = None
         if args.load is not None:
-            if args.start_epoch is not None:
-                self.start_epoch = args.start_epoch
-            # loc = 'cuda:{}'.format(args.gpu)
-            # loc = 'cpu'
-            # self.load(args.load, loc=loc)
-            ckpt = args.load + '.pth'
-            state_dict = load_state_dict(ckpt, 'cpu')
-            # results = self.model.lxrt_encoder.load_state_dict(state_dict, strict=False)
-            results = self.model.load_state_dict(state_dict, strict=False)
-            if self.verbose:
-                print('VQA model loaded from ', ckpt)
-                pprint(results)
-
-        # Load pre-trained weights
-        elif args.load_lxmert is not None:
-            # loc = 'cuda:{}'.format(args.gpu)
-            # loc = 'cpu'
-            # self.model.lxrt_encoder.load(
-            #     args.load_lxmert, loc=loc, verbose=self.verbose)
-            lxmert_ckpt = args.load_lxmert + '_LXRT.pth'
-            state_dict = load_state_dict(lxmert_ckpt, 'cpu')
-            # results = self.model.lxrt_encoder.load_state_dict(state_dict, strict=False)
-            results = self.model.load_state_dict(state_dict, strict=False)
-            if self.verbose:
-                print('LXRT encoder loaded from ', lxmert_ckpt)
-                pprint(results)
+            path = args.load + '.pth'
+            self.load(path, verbose=self.verbose)
 
         elif args.load_lxmert_qa is not None:
-            load_lxmert_qa(args.load_lxmert_qa, self.model,
-                           label2ans=self.train_loader.dataset.raw_dataset.label2ans, verbose=self.verbose)
+            path = args.load_lxmert_qa + '_LXRT.pth'
+            load_lxmert_qa(args, path, self.model,
+                           label2ans=self.train_loader.dataset.raw_dataset.label2ans,
+                           verbose=self.verbose)
 
         # GPU Options
         print(f'Model Launching at GPU {self.args.gpu}')
@@ -94,66 +67,16 @@ class VQA:
         start = time()
         self.model.cuda(args.gpu)
 
-        if not args.test:
-            # Loss and Optimizer
+        # Optimizer
+        if train:
+            self.optim, self.lr_scheduler = self.create_optimizer_and_scheduler()
             self.bce_loss = nn.BCEWithLogitsLoss()
-            if 'bert' in args.optim:
-                batch_per_epoch = len(train_loader)
-                t_total = int(batch_per_epoch * args.epochs)
-                warmup_ratio = 0.1
-                warmup_iters = int(t_total * warmup_ratio)
-                if self.verbose:
-                    print("Batch per epoch: %d" % batch_per_epoch)
-                    print("Total Iters: %d" % t_total)
-                    print('Warmup ratio:', warmup_ratio)
-                    print("Warm up Iters: %d" % warmup_iters)
-                from lxrt.optimization import BertAdam
-                self.optim = BertAdam(list(self.model.parameters()),
-                                      lr=args.lr,
-                                      warmup=warmup_ratio,
-                                      t_total=t_total)
-            elif 'adamw' in args.optim:
-                from transformers.optimization import AdamW, get_linear_schedule_with_warmup
-                batch_per_epoch = len(train_loader)
-                t_total = int(batch_per_epoch * args.epochs)
-                warmup_ratio = 0.1
-                warmup_iters = int(t_total * warmup_ratio)
-                if self.verbose:
-                    print("Batch per epoch: %d" % batch_per_epoch)
-                    print("Total Iters: %d" % t_total)
-                    print('Warmup ratio:', warmup_ratio)
-                    print("Warm up Iters: %d" % warmup_iters)
 
-                no_decay = ["bias", "LayerNorm.weight"]
-                optimizer_grouped_parameters = [
-                    {
-                        "params": [p for n, p in self.model.named_parameters() if not any(nd in n for nd in no_decay)],
-                        "weight_decay": True,
-                    },
-                    {
-                        "params": [p for n, p in self.model.named_parameters() if any(nd in n for nd in no_decay)],
-                        "weight_decay": 0.0,
-                    },
-                ]
-
-                self.optim = AdamW(optimizer_grouped_parameters, args.lr)
-                self.scheduler = get_linear_schedule_with_warmup(
-                    self.optim, warmup_iters, t_total)
-            else:
-                self.optim = args.optimizer(list(self.model.parameters()), args.lr)
-
-            if args.mixed_precision:
-                self.model, self.optim = amp.initialize(
-                    self.model, self.optim, opt_level='O1', verbosity=self.verbose)
-
-            if args.multiGPU:
-                if args.distributed:
-                    self.model = DDP(self.model, device_ids=[args.gpu],
-                                     find_unused_parameters=True
-                                     )
-                else:
-                    self.model = nn.DataParallel(self.model)
-
+        if args.multiGPU:
+            assert args.distributed
+            self.model = DDP(self.model, device_ids=[args.gpu],
+                                find_unused_parameters=True
+                                )
         if args.gpu == 0:
             print(f'It took {time() - start:.1f}s')
 
@@ -161,12 +84,42 @@ class VQA:
         self.output = args.output
         os.makedirs(self.output, exist_ok=True)
 
-        cudnn.benchmark = True
+    def create_optimizer_and_scheduler(self):
+        if self.verbose:
+            print('Building Optimizer')
+
+        from transformers.optimization import AdamW, get_linear_schedule_with_warmup
+        batch_per_epoch = len(self.train_loader)
+        t_total = int(batch_per_epoch * self.args.epochs)
+        warmup_ratio = self.args.warmp_ratio
+        warmup_iters = int(t_total * warmup_ratio)
+        if self.verbose:
+            print("Batch per epoch: %d" % batch_per_epoch)
+            print("Total Iters: %d" % t_total)
+            print('Warmup ratio:', warmup_ratio)
+            print("Warm up Iters: %d" % warmup_iters)
+
+        no_decay = ["bias", "LayerNorm.weight"]
+        optimizer_grouped_parameters = [
+            {
+                "params": [p for n, p in self.model.named_parameters() if not any(nd in n for nd in no_decay)],
+                "weight_decay": self.args.weight_decay,
+            },
+            {
+                "params": [p for n, p in self.model.named_parameters() if any(nd in n for nd in no_decay)],
+                "weight_decay": 0.0,
+            },
+        ]
+
+        optim = AdamW(optimizer_grouped_parameters, self.args.lr)
+        lr_scheduler = get_linear_schedule_with_warmup(
+            optim, warmup_iters, t_total)
+
+        return optim, lr_scheduler
 
     def train(self):
         if self.verbose:
             loss_meter = LossMeter()
-            best_eval_loss = 9595.
             quesid2ans = {}
             best_valid = 0.
             print("Valid Oracle: %0.2f" % (self.oracle_score(self.val_loader) * 100))
@@ -184,8 +137,6 @@ class VQA:
 
         if self.args.distributed:
             dist.barrier()
-
-        self.optim.zero_grad()
 
         for epoch in range(self.args.epochs):
             if self.start_epoch is not None:
@@ -207,31 +158,28 @@ class VQA:
                     else:
                         update = False
 
-                if self.args.clustering:
-                    cluster_ids = batch['cluster_ids'].cuda()
-                    # [B, n_grids, code_dim]
-                    # if self.args.distributed:
-                    if type(self.model) in [DDP, nn.DataParallel]:
-                        vis_feats = self.model.module.vis_emb(cluster_ids)
-                    else:
-                        vis_feats = self.model.vis_emb(cluster_ids)
+                if self.args.distributed:
+                    results = self.model.module.train_step(batch)
                 else:
-                    vis_feats = batch['vis_feats'].cuda()
+                    results = self.model.train_step(batch)
+
+                vis_feats = batch['vis_feats'].cuda()
                 boxes = batch['boxes'].cuda()
 
                 input_ids = batch['word_ids'].cuda()
-                token_type_ids = torch.zeros_like(input_ids)
-                word_attention_mask = input_ids > 0
                 target = batch['targets'].cuda()
 
                 ques_id = batch['question_ids']
 
                 B = len(batch['word_ids'])
 
-                visn_feats = (vis_feats, boxes)
-                sent_feats = (input_ids, token_type_ids, word_attention_mask)
-
-                logit = self.model(visn_feats, sent_feats)
+                results = self.model(
+                    input_ids=input_ids,
+                    visual_feats=vis_feats,
+                    visual_pos=boxes,
+                    attention_mask=input_ids > 0,
+                )
+                logit = results['logit']
 
                 assert logit.size() == target.size()
                 assert logit.size() == (B, self.num_answers)
@@ -242,28 +190,16 @@ class VQA:
 
                 if update:
                     if not self.args.no_clip_grad:
-                        # if self.args.distributed:
-                        #     nn.utils.clip_grad_norm_(self.model.parameters(), 1.)
-                        # else:
-                        # nn.utils.clip_grad_norm_(self.model.parameters(), 5.)
                         nn.utils.clip_grad_norm_(self.model.parameters(), self.args.clip_grad_norm)
 
                     self.optim.step()
-                    if self.args.optim == 'adamw':
-                        self.scheduler.step()
-                    self.optim.zero_grad()
+                    self.lr_scheduler.step()
+                    for param in self.model.parameters():
+                        param.grad = None
 
-                if 'bert' in self.args.optim:
-                    try:
-                        lr = self.optim.lr
-                    except AttributeError:
-                        lr = 0.
-                elif 'adamw' in self.args.optim:
-                    try:
-                        lr = self.scheduler.get_last_lr()[0]
-                    except AttributeError:
-                        lr = self.args.lr
-                else:
+                try:
+                    lr = self.scheduler.get_last_lr()[0]
+                except AttributeError:
                     lr = self.args.lr
 
                 if self.verbose:
@@ -333,31 +269,22 @@ class VQA:
             quesid2ans = {}
             for i, batch in enumerate(tqdm(loader, ncols=150, desc="Prediction")):
 
-                if self.args.clustering:
-                    cluster_ids = batch['cluster_ids'].cuda()
-                    # [B, n_grids, code_dim]
-                    if type(self.model) in [DDP, nn.DataParallel]:
-                        vis_feats = self.model.module.vis_emb(cluster_ids)
-                    else:
-                        vis_feats = self.model.vis_emb(cluster_ids)
-                else:
-                    vis_feats = batch['vis_feats'].cuda()
+                vis_feats = batch['vis_feats'].cuda()
                 boxes = batch['boxes'].cuda()
 
                 input_ids = batch['word_ids'].cuda()
-                token_type_ids = torch.zeros_like(input_ids)
-                word_attention_mask = input_ids > 0
-
                 ques_id = batch['question_ids']
 
-                visn_feats = (vis_feats, boxes)
-                sent_feats = (input_ids, token_type_ids, word_attention_mask)
-
-                logit = self.model(visn_feats, sent_feats)
+                results = self.model(
+                    input_ids=input_ids,
+                    visual_feats=vis_feats,
+                    visual_pos=boxes,
+                    attention_mask=input_ids > 0,
+                )
+                logit = results['logit']
                 score, predict = logit.max(1)
 
                 predict = predict.cpu().numpy()
-                # target = target.cpu().numpy()
 
                 for qid, pred in zip(ques_id, predict):
                     pred_ans = loader.dataset.raw_dataset.label2ans[pred]
@@ -391,19 +318,13 @@ class VQA:
         torch.save(self.model.state_dict(),
                    os.path.join(self.output, "%s.pth" % name))
 
-    def load(self, path, loc=None):
-        print("Load model from %s" % path)
-        if loc is None:
-            state_dict = torch.load("%s.pth" % path)
-        else:
-            state_dict = torch.load("%s.pth" % path, map_location=loc)
-        self.model.load_state_dict(state_dict)
-
-    # def load(self, path):
-    #     print("Load model from %s" % path)
-    #     state_dict = torch.load("%s.pth" % path)
-    #     self.model.load_state_dict(state_dict)
-
+    def load(self, path, loc='cpu', verbose=False):
+        state_dict = load_state_dict(path, loc)
+        results = self.model.load_state_dict(state_dict, strict=False)
+        if verbose:
+            print('Loaded from ', path)
+            print(results)
+        # self.start_epoch = int(self.args.load.split('Epoch')[-1])
 
 def main_worker(gpu, args):
     # GPU is assigned
@@ -441,28 +362,24 @@ def main_worker(gpu, args):
         logger = None
 
     if not args.test:
-        transform = None
-
         train_loader = get_loader(
             args,
             # 'mscoco_minival', mode='train', batch_size=args.batch_size,
             split=args.train, mode='train', batch_size=args.batch_size,
             distributed=args.distributed, gpu=args.gpu,
-            workers=args.num_workers, transform=transform,
-            # topk=args.train_topk, data_out=data_out)
+            workers=args.num_workers,
         )
 
         val_loader = get_loader(
             args,
             split=args.valid, mode='val', batch_size=args.batch_size,
             distributed=args.distributed, gpu=args.gpu,
-            workers=4, transform=transform,
-            # topk=args.valid_topk, data_out=data_out)
+            workers=4,
         )
 
         num_answers = train_loader.dataset.raw_dataset.num_answers
 
-        trainer = VQA(args, train_loader, val_loader, logger, num_answers=num_answers, train=True)
+        trainer = Trainer(args, train_loader, val_loader, logger, num_answers=num_answers, train=True)
         trainer.train()
     else:
         print('Evaluation on test-dev split')
@@ -472,12 +389,11 @@ def main_worker(gpu, args):
             args,
             split='test', mode='val', batch_size=args.batch_size,
             distributed=False, gpu=args.gpu,
-            workers=4, transform=transform,
-            # topk=args.valid_topk, data_out=data_out)
+            workers=4,
         )
         num_answers = test_loader.dataset.raw_dataset.num_answers
 
-        trainer = VQA(args, train_loader, test_loader, logger, num_answers=num_answers, train=False)
+        trainer = Trainer(args, train_loader, test_loader, logger, num_answers=num_answers, train=False)
 
         dump_path = 'Test_submission/vqa/' + args.comment + '_test_dev.json'
         print('dump_path is', dump_path)
@@ -485,9 +401,7 @@ def main_worker(gpu, args):
 
 
 if __name__ == "__main__":
-
-    cudnn.benchmark = True
-    # args = parse_args()
+    args = parse_args()
     print(args)
     ngpus_per_node = torch.cuda.device_count()
     args.world_size = ngpus_per_node
@@ -497,15 +411,9 @@ if __name__ == "__main__":
         comment = f'Grid{args.grid_size}'
     else:
         comment = f'Box{args.n_boxes}'
-    if args.clustering:
-        comment += '_cluster'
     comment += f'_{args.backbone}'
     comment += f'_{args.encoder}'
 
-    if args.im_ratio == 'original':
-        comment += f'_imratio{args.im_ratio}'
-    else:
-        comment+= f'_imsize{args.resize_input_size}'
     comment += f'_dim{args.feat_dim}'
 
     if args.load_lxmert is not None:
@@ -527,49 +435,7 @@ if __name__ == "__main__":
         log_dir.mkdir(exist_ok=True, parents=True)
         print('logging at', log_dir)
 
-    # if not args.dry:
-    # from torch.utils.tensorboard import SummaryWriter
-    #     writer = SummaryWriter(log_dir=log_dir)
-
-    # nlvr2.train(nlvr2.train_tuple, nlvr2.valid_tuple)
     if args.distributed:
         mp.spawn(main_worker, nprocs=ngpus_per_node, args=(args,))
     else:
         main_worker(0, args)
-    #
-    # # # Build Class
-    # # vqa = VQA()
-    #
-    # # Load VQA model weights
-    # # Note: It is different from loading LXMERT pre-trained weights.
-    # if args.load is not None:
-    #     vqa.load(args.load)
-    #
-    # # Test or Train
-    # if args.test is not None:
-    #     args.fast = args.tiny = False       # Always loading all data in test
-    #     if 'test' in args.test:
-    #         vqa.predict(
-    #             get_data_tuple(args.test, bs=950,
-    #                            shuffle=False, drop_last=False),
-    #             dump=os.path.join(args.output, 'test_predict.json')
-    #         )
-    #     elif 'val' in args.test:
-    #         # Since part of valididation data are used in pre-training/fine-tuning,
-    #         # only validate on the minival set.
-    #         result = vqa.evaluate(
-    #             get_data_tuple('minival', bs=950,
-    #                            shuffle=False, drop_last=False),
-    #             dump=os.path.join(args.output, 'minival_predict.json')
-    #         )
-    #         print(result)
-    #     else:
-    #         assert False, "No such test option for %s" % args.test
-    # else:
-    #     print('Splits in Train data:', vqa.train_tuple.dataset.splits)
-    #     if vqa.valid_tuple is not None:
-    #         print('Splits in Valid data:', vqa.valid_tuple.dataset.splits)
-    #         print("Valid Oracle: %0.2f" % (vqa.oracle_score(vqa.valid_tuple) * 100))
-    #     else:
-    #         print("DO NOT USE VALIDATION")
-    #     vqa.train(vqa.train_tuple, vqa.valid_tuple)

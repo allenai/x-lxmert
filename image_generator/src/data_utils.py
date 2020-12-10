@@ -95,13 +95,13 @@ class COCODataset(Dataset):
                 print(f"Use only {self.topk} data")
 
         if 'cluster_id' in data_out:
-            centroids_dir = self.datasets_dir.joinpath('cluster_centroids').resolve()
+            clustering_dir = self.datasets_dir.joinpath('clustering').resolve()
             if split == 'mscoco_train':
-                with open(centroids_dir.joinpath(f'{config.encoder}_{config.cluster_src}_mscoco_train_img_id_to_cluster_id_{config.n_centroids}_iter{config.n_iter}_d{config.emb_dim}_grid{config.n_grid}.pkl'), 'rb') as f:
+                with open(clustering_dir.joinpath(f'{config.encoder}_{config.cluster_src}_mscoco_train_img_id_to_cluster_id_{config.n_centroids}_iter{config.n_iter}_d{config.emb_dim}_grid{config.n_grid}.pkl'), 'rb') as f:
                     mscoco_train_img_id_to_cluster_id = pickle.load(f)
                 self.img_id_to_cluster_id = mscoco_train_img_id_to_cluster_id
             else:
-                with open(centroids_dir.joinpath(f'{config.encoder}_{config.cluster_src}_mscoco_valid_img_id_to_cluster_id_{config.n_centroids}_iter{config.n_iter}_d{config.emb_dim}_grid{config.n_grid}.pkl'), 'rb') as f:
+                with open(clustering_dir.joinpath(f'{config.encoder}_{config.cluster_src}_mscoco_valid_img_id_to_cluster_id_{config.n_centroids}_iter{config.n_iter}_d{config.emb_dim}_grid{config.n_grid}.pkl'), 'rb') as f:
                     mscoco_valid_img_id_to_cluster_id = pickle.load(f)
                 self.img_id_to_cluster_id = mscoco_valid_img_id_to_cluster_id
 
@@ -115,28 +115,6 @@ class COCODataset(Dataset):
         for info_dict in data_info_dicts:
             info_dict['target_size'] = self.config.resize_target_size
 
-        # def get_datum(info_dict):
-        #     img_id = info_dict['img_id']
-
-        #     if 'val' in img_id:
-        #         img_dir = coco_img_dir.joinpath('val2014').resolve()
-        #     else:
-        #         img_dir = coco_img_dir.joinpath('train2014').resolve()
-
-        #     img_path = None
-        #     if img_dir.joinpath(img_id + '.jpg').is_file():
-        #         img_path = img_dir.joinpath(img_id + '.jpg')
-        #     elif coco_img_dir.joinpath(img_id + '.png').is_file():
-        #         img_path = img_dir.joinpath(img_id + '.png')
-        #     assert img_path is not None
-
-        #     datum = {
-        #         'img_id': img_id,
-        #         'img_path': img_path,
-        #         # 'img': img,
-        #     }
-
-        #     return datum
 
         data = []
         for info_dict in data_info_dicts:
@@ -157,14 +135,6 @@ class COCODataset(Dataset):
                 'img_id': img_id,
                 'img_path': img_path,
             })
-
-        # with Pool() as pool:
-        #     if self.verbose:
-        #         data = list(
-        #             tqdm(pool.imap(get_datum, data_info_dicts),
-        #                  total=len(data_info_dicts)))
-        #     else:
-        #         data = list(pool.imap(get_datum, data_info_dicts))
 
         self.data = data
         if self.verbose:

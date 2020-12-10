@@ -17,11 +17,11 @@ import torch.optim as optim
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.multiprocessing as mp
 
-import apex
-from apex import amp
+# import apex
+# from apex import amp
 
 import configs
-from layers import Generator, Discriminator, ResNetEncoder]
+from layers import Generator, Discriminator, ResNetEncoder
 from trainer import Trainer
 from data_utils import get_loader
 

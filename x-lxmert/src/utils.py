@@ -1,6 +1,7 @@
-import torch
 import collections
 import numpy as np
+import torch
+import torch.distributed as dist
 
 
 def count_parameters(model):

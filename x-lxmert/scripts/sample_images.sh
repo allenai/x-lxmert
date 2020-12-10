@@ -1,3 +1,4 @@
+PYTHONPATH=$PYTHONPATH:./src \
 python src/sample_images.py \
     --numWorkers 0 \
     --backbone "lxmert" \

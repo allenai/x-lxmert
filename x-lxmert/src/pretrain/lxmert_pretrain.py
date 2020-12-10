@@ -18,9 +18,7 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch.backends.cudnn as cudnn
 
-
 from transformers import LxmertTokenizer
-import wandb
 
 _use_native_amp = False
 _use_apex = False
@@ -42,7 +40,7 @@ from pretrain.lxmert_data import get_loader
 from utils import load_state_dict, LossMeter, count_parameters, reduce_dict, set_global_logging_level
 
 set_global_logging_level(logging.ERROR, ["transformers"])
-
+cudnn.benchmark = True
 
 class Trainer:
     def __init__(self, args, train_loader=None, val_loader=None, logger=None, train=True):
@@ -70,17 +68,10 @@ class Trainer:
                 self.verbose = False
 
         if args.clustering:
-            centroid_dir = Path(
-                '/home/jaeminc/Dropbox/Projects/AI2/clustering/').resolve()
-            if args.v4:
-                centroid_dir = centroid_dir.joinpath('v4')
-            imsize = args.resize_input_size
-            if args.im_ratio == 'original':
-                centroid_path = centroid_dir.joinpath(
-                    f'{args.encoder}_{args.cluster_src}_centroids{args.n_centroids}_iter{args.n_iter}_d{args.feat_dim}_grid{args.grid_size}.npy')
-            else:
-                centroid_path = centroid_dir.joinpath(
-                    f'{args.encoder}_{args.cluster_src}_centroids{args.n_centroids}_iter{args.n_iter}_d{args.feat_dim}_grid{args.grid_size}_imsize{imsize}.npy')
+            self.datasets_dir = Path(self.args.datasets_dir)
+            clustering_dir = self.datasets_dir.joinpath('clustering')
+            centroid_path = clustering_dir.joinpath(
+                f'{args.encoder}_{args.cluster_src}_centroids{args.n_centroids}_iter{args.n_iter}_d{args.feat_dim}_grid{args.grid_size}.npy')
             centroids = np.load(centroid_path)
 
             self.model.set_visual_embedding(centroids)
@@ -88,13 +79,8 @@ class Trainer:
         # Load pre-trained weights
         self.start_epoch = None
         if args.load is not None:
-            lxmert_ckpt = args.load +'_LXRT.pth'
-            state_dict = load_state_dict(lxmert_ckpt, 'cpu')
-            results = self.model.load_state_dict(state_dict, strict=False)
-            if self.verbose:
-                print('Loaded from ', lxmert_ckpt)
-                print(results)
-            self.start_epoch = int(args.load.split('Epoch')[-1])
+            path = args.load + '_LXRT.pth'
+            self.load(path, verbose=self.verbose)
 
         # GPU Options
         print(f'Model Launching at GPU {self.args.gpu}')
@@ -114,11 +100,10 @@ class Trainer:
                     self.model, self.optim, opt_level='O1', verbosity=self.verbose)
 
         if args.multiGPU:
-            # self.model = nn.DataParallel(self.model)
-            if args.distributed:
-                self.model = DDP(self.model, device_ids=[args.gpu],
-                                 find_unused_parameters=True
-                                 )
+            assert args.distributed
+            self.model = DDP(self.model, device_ids=[args.gpu],
+                                find_unused_parameters=True
+                                )
         if args.gpu == 0:
             print(f'It took {time() - start:.1f}s')
 
@@ -129,7 +114,7 @@ class Trainer:
         from transformers.optimization import AdamW, get_linear_schedule_with_warmup
         batch_per_epoch = len(self.train_loader)
         t_total = int(batch_per_epoch * self.args.epochs)
-        warmup_ratio = 0.05
+        warmup_ratio = self.args.warmp_ratio
         warmup_iters = int(t_total * warmup_ratio)
         if self.verbose:
             print("Batch per epoch: %d" % batch_per_epoch)
@@ -211,7 +196,7 @@ class Trainer:
         elif task == 'vis_mask':
             word_id = batch['word_id'].to(device)
 
-        word_attention_mask = word_id > 0
+        # word_attention_mask = word_id > 0
         token_type_ids = torch.zeros_like(word_id)
 
         out_dict = self.model(
@@ -315,7 +300,6 @@ class Trainer:
                 # with torch.autograd.set_detect_anomaly(True):
                 results = self.forward(batch, task)
 
-                self.optim.zero_grad()
                 if self.args.fp16 and _use_native_amp:
                     with autocast():
                         results = self.model(batch, task)
@@ -337,7 +321,6 @@ class Trainer:
 
                 if self.args.task_qa:
                     epoch_results['qa_loss_count'] += 1
-                    qa_loss = results['qa_loss']
                     qa_pred = results['qa_pred']
                     for uid, ans_id in zip(batch['uid'], qa_pred.cpu().numpy()):
                         ans = self.train_loader.dataset.answer_table.id2ans(ans_id)
@@ -377,7 +360,6 @@ class Trainer:
 
                 if self.lr_scheduler:
                     self.lr_scheduler.step()
-                # self.model.zero_grad()
                 for param in self.model.parameters():
                     param.grad = None
 
@@ -433,8 +415,8 @@ class Trainer:
                             if step_i % 10 == 0:
                                 self.writer.add_scalar(f'Train_steps/{loss_name}', loss_meter.val, global_step)
 
-                    if update:
-                        n_update += 1
+                    # if update:
+                    n_update += 1
                     desc_str += f' | Total Update: {n_update}'
 
                     pbar.set_description(desc_str)
@@ -694,68 +676,13 @@ class Trainer:
         torch.save(self.model.state_dict(),
                    os.path.join(self.args.output, "%s_LXRT.pth" % name))
 
-    def load(self, path, loc=None, verbose=False):
-        print("Load BERT extractor from %s" % path)
-        if loc is None:
-            state_dict = torch.load("%s_LXRT.pth" % path)
-        else:
-            state_dict = torch.load("%s_LXRT.pth" % path, map_location=loc)
-        result = self.model.load_state_dict(state_dict, strict=False)
+    def load(self, path, loc='cpu', verbose=False):
+        state_dict = load_state_dict(path, loc)
+        results = self.model.load_state_dict(state_dict, strict=False)
         if verbose:
-            print(result)
-
-    def load_lxmert(self, path, loc=None, verbose=False):
-        if verbose:
-            print("Load LXMERT model from %s" % path)
-        if loc is None:
-            state_dict = torch.load("%s_LXRT.pth" % path)
-        else:
-            state_dict = torch.load("%s_LXRT.pth" % path, map_location=loc)
-
-        # Do not load any answer head
-        for key in list(state_dict.keys()):
-            if 'answer' in key:
-                state_dict.pop(key)
-
-        # Change Multi GPU to single GPU
-        new_state_dict = {}
-        for key, value in state_dict.items():
-            if key.startswith("module."):
-                new_state_dict[key[len("module."):]] = value
-        state_dict = new_state_dict
-        if verbose:
-            load_keys = set(state_dict.keys())
-            model_keys = set(self.model.module.state_dict().keys())
-            print()
-            print("Keys in loaded but not in model:")
-            for key in sorted(load_keys.difference(model_keys)):
-                print(key)
-            print()
-            print("Keys in model but not in loaded:")
-            for key in sorted(model_keys.difference(load_keys)):
-                print(key)
-            print()
-
-        self.model.module.load_state_dict(state_dict, strict=False)
-
-
-class LossMeter(object):
-    def __init__(self, maxlen=100):
-        """Computes and stores the running average"""
-        self.vals = collections.deque([], maxlen=maxlen)
-
-    def __len__(self):
-        return len(self.vals)
-
-    def update(self, new_val):
-        self.vals.append(new_val)
-
-    @property
-    def val(self):
-        return sum(self.vals) / len(self.vals)
-
-    def __repr__(self):
-        return str(self.val)
+            print('Loaded from ', path)
+            print(results)
+        self.start_epoch = int(args.load.split('Epoch')[-1])
 
 
 def main_worker(gpu, args):
@@ -793,21 +720,11 @@ def main_worker(gpu, args):
     else:
         logger = None
 
-    # transform = transforms.Compose([
-    #     transforms.Resize((args.img_size,
-    #                        args.img_size)),
-    #     # transforms.RandomHorizontalFlip()
-    # ])
-    transform = None
-
     data_out = ['box', 'sent']
 
     if args.task_matched:
         data_out += ['matched']
-
-    # data_out = ['img', 'box', 'sent']
     if args.clustering or args.target_cluster:
-        # collate_fn = image_cluster_id_collate_fn
         data_out += ['cluster_id']
     if args.word_mask_predict:
         data_out += ['word_mask_idx']
@@ -815,12 +732,6 @@ def main_worker(gpu, args):
         data_out += ['vis_mask_idx']
     if args.feed_exact_feat or args.target_exact_feat:
         data_out += ['feat']
-    if args.target_prob:
-        if args.grid_model:
-            data_out += ['prob']
-        else:
-            data_out += ['obj_prob']
-            data_out += ['attr_prob']
     if args.target_obj_id:
         data_out += ['obj_id']
 
@@ -831,30 +742,23 @@ def main_worker(gpu, args):
 
     train_loader = get_loader(
         args,
-        # 'mscoco_minival', mode='train', batch_size=args.batch_size,
         split=args.train, mode='train', batch_size=args.batch_size,
         distributed=args.distributed, gpu=args.gpu,
-        workers=args.num_workers, transform=transform,
+        workers=args.num_workers,
         topk=args.train_topk, data_out=data_out)
 
     val_loader = get_loader(
         args,
         split=args.valid, mode='val', batch_size=args.batch_size,
         distributed=args.distributed, gpu=args.gpu,
-        workers=args.num_workers, transform=transform,
+        workers=args.num_workers,
         topk=args.valid_topk, data_out=data_out)
 
-    trainer = LXMERT(args, train_loader, val_loader, logger, train=True)
-    # trainer = LXMERT(args, train_loader, val_loader, logger, train=False)
-
-    # import ipdb
-    # ipdb.set_trace()
-
+    trainer = Trainer(args, train_loader, val_loader, logger, train=True)
     trainer.train()
 
 
 if __name__ == "__main__":
-    cudnn.benchmark = True
     args = parse_args()
 
     if args.vis_mask_predict:
@@ -894,8 +798,6 @@ if __name__ == "__main__":
         MASK_MODALITY.append('word_mask')
     if args.task_matched:
         MASK_MODALITY.append('matched')
-    # if args.task_qa:
-    #     MASK_MODALITY.append('qa')
 
     print(LOSSES_NAME)
     print(MASK_MODALITY)
@@ -917,8 +819,6 @@ if __name__ == "__main__":
             comment += '_COCO'
     if args.from_scratch:
         comment += '_fromscratch'
-    if args.load_lxmert is not None:
-        comment += f'_{args.load_lxmert}'
     if args.word_mask_predict:
         comment += f'_WMP'
     elif args.word_mask_rate > 0:
