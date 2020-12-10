@@ -46,6 +46,7 @@ class ImggenModel(LxmertPreTrainedModel):
         out = (x + 1) / 2
         return out.clamp(0, 1)
 
+    @torch.no_grad()
     def sample_image_AR(self,
                         sentences,
                         max_text_length=20,
@@ -56,6 +57,7 @@ class ImggenModel(LxmertPreTrainedModel):
                         seed=None,
                         return_intermediate=False,
                         ):
+        self.eval()
         B = len(sentences)
 
         input_ids = self.tokenizer(
@@ -164,6 +166,7 @@ class ImggenModel(LxmertPreTrainedModel):
 
         return fake_img
 
+    @torch.no_grad()
     def sample_image_NAR(self,
                         sentences,
                         max_text_length=20,
@@ -174,6 +177,8 @@ class ImggenModel(LxmertPreTrainedModel):
                         # seed=None,
                         return_intermediate=False,
                         ):
+
+        self.eval()
         B = len(sentences)
 
         input_ids = self.tokenizer(

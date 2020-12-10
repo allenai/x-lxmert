@@ -313,7 +313,7 @@ if __name__ == '__main__':
     from pathlib import Path
     from utils import box_position, load_state_dict
 
-    ckpt_path = Path(__file__).resolve().parent.parent.parent.joinpath('snap/pretrained/x_lxmert/Epoch20_LXRT.pth')
+    ckpt_path = Path(__file__).resolve().parents[2].joinpath('snap/pretrained/x_lxmert/Epoch20_LXRT.pth')
     state_dict = load_state_dict(ckpt_path, 'cpu')
 
     results = model.load_state_dict(state_dict, strict=False)

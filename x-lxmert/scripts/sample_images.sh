@@ -1,4 +1,5 @@
 PYTHONPATH=$PYTHONPATH:./src \
+PYTHONPATH=$PYTHONPATH:../image_generator/src \
 python src/sample_images.py \
     --numWorkers 0 \
     --backbone "lxmert" \
@@ -9,8 +10,7 @@ python src/sample_images.py \
     --feat_dim 2048 \
     --codebook_dim 2048 \
     --n_codebook 10000 \
-    --encoder "maskrcnn" \
-    --im_ratio "original" \
+    --norm_type 'spade_in'
     --vis_mask_predict \
     --sample_steps 4 \
     --load "snap/pretrained/x-lxmert/Epoch20" \
