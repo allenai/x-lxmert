@@ -71,6 +71,8 @@ pip install -r ./requirements.txt
 
 # Feature extraction
 
+Please checkout [./feature_extraction](./feature_extraction) for download pre-extracted features and more details.
+
 ```bash
 cd ./feature_extraction
 
