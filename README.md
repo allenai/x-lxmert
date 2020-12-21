@@ -20,6 +20,9 @@ Try out [AI2 Computer Vision Explorer Demo](https://vision-explorer.allenai.org/
 * Python packages
 
 ```bash
+conda create -n xlxmert python=3.7
+conda activate xlxmert
+cd  x-lxmert
 pip install -r ./requirements.txt
 ```
 * [Mask-RCNN-benchmark](https://gitlab.com/vedanuj/vqa-maskrcnn-benchmark) (for feature extraction)
