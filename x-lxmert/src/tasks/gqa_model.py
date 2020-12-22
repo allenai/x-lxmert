@@ -1,4 +1,4 @@
-from transformers.modeling_lxmert import LxmertVisualAnswerHead, LxmertModel, LxmertPreTrainedModel
+from transformers.models.lxmert.modeling_lxmert import LxmertVisualAnswerHead, LxmertModel, LxmertPreTrainedModel
 
 import torch
 import torch.nn as nn

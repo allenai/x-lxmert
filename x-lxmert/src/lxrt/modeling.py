@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn import CrossEntropyLoss, SmoothL1Loss
 
-from transformers.modeling_lxmert import LxmertPredictionHeadTransform, LxmertPreTrainingHeads, LxmertVisualAnswerHead, LxmertModel, LxmertPreTrainedModel
+from transformers.models.lxmert.modeling_lxmert import LxmertPredictionHeadTransform, LxmertPreTrainingHeads, LxmertVisualAnswerHead, LxmertModel, LxmertPreTrainedModel
 
 
 class LxmertVisualObjHead(nn.Module):

@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from transformers.modeling_lxmert import LxmertModel, LxmertPreTrainedModel, LxmertVisualObjHead
+from transformers.models.lxmert.modeling_lxmert import LxmertModel, LxmertPreTrainedModel, LxmertVisualObjHead
 from utils import box_position
 from transformers import LxmertTokenizer
 
