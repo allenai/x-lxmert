@@ -20,9 +20,9 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
-# def is_interactive():
-#     import __main__ as main
-#     return not hasattr(main, '__file__')
+def is_interactive():
+    import __main__ as main
+    return not hasattr(main, '__file__')
 
 
 def get_optimizer(optim, verbose=False):
