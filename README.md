@@ -64,7 +64,7 @@ pip install -r ./requirements.txt
 # Train X-LXMERT
 ./x-lxmert
     src/
-        lxrt/           <= X-LXMERT model class implementation (inherits huggingface transformer's LXMERT class)
+        lxrt/           <= X-LXMERT model class implementation (inherits huggingface transformers' LXMERT class)
         pretrain/       <= X-LXMERT Pretraining
         tasks/          <= Fine-tuning on downstream tasks (VQA, GQA, NLVR2, Image generation)
     snap/       <= Store X-LXMERT checkpoints
